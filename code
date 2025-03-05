@@ -1,0 +1,168 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+class RBFCalculatorApp:
+    def __init__(self, master):
+        self.master = master
+        master.title("RBF Calculator")
+        master.geometry("800x700")
+
+   
+        input_frame = ttk.LabelFrame(master, text="Input Parameters")
+        input_frame.pack(padx=10, pady=10, fill='x')
+
+
+        ttk.Label(input_frame, text="Sigma:").grid(row=0, column=0, padx=5, pady=5)
+        self.sigma_entry = ttk.Entry(input_frame, width=10)
+        self.sigma_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.sigma_entry.insert(0, "1")
+
+
+        ttk.Label(input_frame, text="Centers (x,y):").grid(row=0, column=2, padx=5, pady=5)
+        self.centers_entry = ttk.Entry(input_frame, width=20)
+        self.centers_entry.grid(row=0, column=3, padx=5, pady=5)
+        self.centers_entry.insert(0, "0,0;2.5,2.5")
+
+
+        ttk.Label(input_frame, text="Points (x,y):").grid(row=1, column=0, padx=5, pady=5)
+        self.points_text = tk.Text(input_frame, height=5, width=40)
+        self.points_text.grid(row=1, column=1, columnspan=3, padx=5, pady=5)
+        self.points_text.insert(tk.END, """0,0
+0,2
+0.5,1
+1,0.5
+1,1.5
+1.5,1
+2,0
+2,2
+2,3
+2.5,2.5
+3,2
+3,3""")
+
+
+        calculate_btn = ttk.Button(input_frame, text="Calculate", command=self.calculate)
+        calculate_btn.grid(row=2, column=1, columnspan=2, padx=5, pady=5)
+
+
+        self.results_frame = ttk.LabelFrame(master, text="Results")
+        self.results_frame.pack(padx=10, pady=10, fill='both', expand=True)
+
+    def parse_input(self, input_str):
+        """Parse input string to list of tuples"""
+        try:
+            return [tuple(map(float, point.strip().split(','))) for point in input_str.strip().split('\n')]
+        except ValueError:
+            messagebox.showerror("Input Error", "Invalid input format. Use x,y format.")
+            return []
+
+    def calculate_radius_squared(self, x, center):
+        """Calculate squared radius (r²)"""
+        return np.sum((np.array(x) - np.array(center))**2)
+
+    def gaussian_function(self, r_squared, sigma):
+        """Calculate Gaussian function value"""
+        return np.exp(-r_squared / (2 * sigma**2))
+
+    def calculate(self):
+
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+
+        try:
+
+            sigma = float(self.sigma_entry.get())
+            centers_str = self.centers_entry.get()
+            points_str = self.points_text.get("1.0", tk.END)
+
+
+            centers = self.parse_input(centers_str.replace(';', '\n'))
+            points = self.parse_input(points_str)
+
+
+            if not centers or len(centers) < 2:
+                messagebox.showerror("Input Error", "Please provide at least two centers")
+                return
+
+
+            results = []
+            for x, x2 in points:
+                r_squared_c1 = self.calculate_radius_squared((x, x2), centers[0])
+                r_squared_c2 = self.calculate_radius_squared((x, x2), centers[1])
+                
+                phi1 = self.gaussian_function(r_squared_c1, sigma)
+                phi2 = self.gaussian_function(r_squared_c2, sigma)
+                
+                results.append({
+                    'X1': x,
+                    'X2': x2,
+                    'r²_C1(0,0)': r_squared_c1,
+                    'r²_C2(2.5,2.5)': r_squared_c2,
+                    'φ1': phi1,
+                    'φ2': phi2
+                })
+
+            df = pd.DataFrame(results)
+
+            tree = ttk.Treeview(self.results_frame, columns=list(df.columns), show='headings')
+            
+            for col in df.columns:
+                tree.heading(col, text=col)
+                tree.column(col, anchor='center', width=100)
+            
+            for i, row in df.iterrows():
+                tree.insert('', 'end', values=list(row))
+            
+            scrollbar = ttk.Scrollbar(self.results_frame, orient=tk.VERTICAL, command=tree.yview)
+            tree.configure(yscroll=scrollbar.set)
+            
+            tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            self.visualize_results(points, centers)
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def visualize_results(self, points, centers):
+
+        viz_window = tk.Toplevel(self.master)
+        viz_window.title("RBF Visualization")
+        viz_window.geometry("600x500")
+
+
+        fig, ax = plt.subplots(figsize=(6, 5))
+        
+        x_coords = [p[0] for p in points]
+        y_coords = [p[1] for p in points]
+        
+
+        ax.scatter(x_coords, y_coords, c='blue', label='Data Points')
+        
+
+        center_x = [c[0] for c in centers]
+        center_y = [c[1] for c in centers]
+        ax.scatter(center_x, center_y, c='red', marker='x', s=200, label='Centers')
+        
+        ax.set_title('RBF Data Points and Centers')
+        ax.set_xlabel('X1')
+        ax.set_ylabel('X2')
+        ax.legend()
+        ax.grid(True)
+
+        canvas = FigureCanvasTkAgg(fig, master=viz_window)
+        canvas_widget = canvas.get_tk_widget()
+        canvas_widget.pack(fill=tk.BOTH, expand=True)
+        canvas.draw()
+
+def main():
+    root = tk.Tk()
+    app = RBFCalculatorApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
