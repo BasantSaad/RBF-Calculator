@@ -52,7 +52,5 @@ pip install numpy pandas matplotlib
 - A visualization of the data points and center locations.
 
 ## Screenshot
-![RBF Calculator Screenshot](https://raw.githubusercontent.com/BasantSaad/repo-name/main/screenshot.png)
-
-
+![RBF Calculator Screenshot](https://raw.githubusercontent.com/BasantSaad/RBF-Calculator/main/screenshot.png)
 
