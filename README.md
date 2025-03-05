@@ -51,7 +51,4 @@ pip install numpy pandas matplotlib
 - A table displaying `r²` values and corresponding Gaussian function values.
 - A visualization of the data points and center locations.
 
-## Screenshot
-![RBF Calculator Screenshot](https://raw.githubusercontent.com/BasantSaad/RBF-Calculator/master/screenshot.png)
-
 
